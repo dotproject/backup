@@ -11,7 +11,7 @@
 // MODULE CONFIGURATION DEFINITION
 $config = array();
 $config['mod_name'] = 'Backup';
-$config['mod_version'] = '1.0.1';
+$config['mod_version'] = '2.0';
 $config['mod_directory'] = 'backup';
 $config['mod_setup_class'] = 'CSetupBackup';
 $config['mod_type'] = 'user';

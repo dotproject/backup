@@ -6,16 +6,27 @@
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
 
-// get the correct path to do_backup.php
-$result = mysql_query('SELECT mod_directory FROM modules WHERE mod_name=\'backup\'');
-$row = mysql_fetch_assoc($result);
-$backup_path = './modules/'.$row['mod_directory'].'/';
+// Changes by Adam Donnison <ajdonnison@dotproject.net>
+// Changes include:
+//   Upgraded to work with dotProject 2.0
+//   Added permissions check to ensure user is allowed to backup
+//   Added XML backup option
+//   Completely reworked the backup system to use ADODB primitives.
+//   Added localisation code so that it can be translated.
+
+$perms =& $AppUI->acl();
+if (! $perms->checkModule('backup', 'view'))	// Should we have an exec permission?
+	$AppUI->redirect("m=public&a=access_denied");
+
+$title =& new CTitleBlock('Backup Database', 'companies.gif', $m, $m .'.'.$a);
+$title->addCrumb('index.php?m=backup&a=restore', 'restore xml file');
+$title->show();
 ?>
 <script>
 	function check_backup_options()
 	{
 		var f = document.frmBackup;
-		if(f.export_what.options[f.export_what.selectedIndex].value==3)
+		if(f.export_what.options[f.export_what.selectedIndex].value == 'data')
 		{
 			f.droptable.enabled=false;
 			f.droptable.checked=false;
@@ -26,47 +37,34 @@ $backup_path = './modules/'.$row['mod_directory'].'/';
 		}
 	}
 </script>
-<table width="100%" cellspacing="0" cellpadding="4" border="0">
-<tr>
-<td valign="top" align="left" width="98%">
-
-<table width="100%" border="0" cellpadding="1" cellspacing="1">
-<tr>
-<td width="36"><img src="./images/icons/companies.gif" height="36" alt="" border="0" /></td>
-<td align="left" width="100%" nowrap="nowrap"><h1>Backup database</h1></td>
-</tr>
-</table>
 
 <table cellspacing="0" cellpadding="4" border="0" width="100%" class="std">
-	<form onclick="check_backup_options()" name="frmBackup" action="<?php echo $backup_path ?>do_backup.php" method="post">
+	<form onclick="check_backup_options()" name="frmBackup" action="<?php echo "$baseUrl/index.php?m=backup&a=do_backup&suppressHeaders=1"; ?>" method="post">
 	<tr>
 		<td align="right" valign="top" nowrap="nowrap">
-			Export
+			<?php echo $AppUI->_('Export'); ?>
 		</td>
 		<td width="100%" nowrap="nowrap">
-			<select name="export_what" style="font-size:10px" >
-				<option value="1" checked="checked" />Table structure and data
-				<option value="2" />Only table strucure
-				<option value="3" />Only data
+			<select name="export_what" class="text" >
+				<option value="all" checked="checked"><?php echo $AppUI->_('Table structure and data'); ?></option>
+				<option value="table"><?php echo $AppUI->_('Only table structure'); ?></option>
+				<option value="data"><?php echo $AppUI->_('Only data'); ?></option>
 			</select>
 		</td>
 	</tr>
 	<tr>
-		<td align="right" valign="top"  nowrap="nowrap">
-			Extra options
-		</td>
+		<td align="right" valign="top"  nowrap="nowrap"><?php echo $AppUI->_('Options'); ?></td>
 		<td width="100%" nowrap="nowrap">
-			<input type="checkbox" name="droptable" checked="checked" />Add 'DROP TABLE' to output-script<br />
+			<input type="checkbox" name="droptable" value="1" checked="checked" /><?php echo $AppUI->_("Add 'DROP TABLE' to output-script"); ?><br />
 		</td>
 	</tr>
 	<tr>
-		<td align="right" valign="top"  nowrap="nowrap">
-			Save as
-		</td>
+		<td align="right" valign="top"  nowrap="nowrap"><?php echo $AppUI->_('Save as'); ?></td>
 		<td width="100%" nowrap="nowrap">
-			<select name="compress" style="font-size:10px" >
-				<option value="1" checked="checked" />Compressed .ZIP file
-				<option value="0" />Plain text file
+			<select name="output_format" class="text" >
+				<option value="zip" checked="checked"><?php echo $AppUI->_('Compressed ZIP SQL file', UI_OUTPUT_RAW); ?></option>
+				<option value="sql"><?php echo $AppUI->_('Plain text SQL file', UI_OUTPUT_RAW); ?></option>
+				<option value="xml"><?php echo $AppUI->_('XML file', UI_OUTPUT_RAW); ?></option>
 			</select>
 		</td>
 	</tr>
@@ -75,7 +73,7 @@ $backup_path = './modules/'.$row['mod_directory'].'/';
 			&nbsp;
 		</td>
 		<td align="right">
-			<input type="submit" value="Download backup" class="button"/>
+			<input type="submit" value="<?php echo $AppUI->_('Download backup'); ?>" class="button"/>
 		</td>
 	</tr>
 	</form>
